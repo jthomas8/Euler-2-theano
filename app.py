@@ -1,19 +1,23 @@
 #!/usr/local/bin/python3
 import theano
 from theano import shared
-import math
+import numpy as np
 import scipy.constants
 
-# Constants
 phi_cubed = shared(scipy.constants.golden ** 3)
-last_even = theano.tensor.iscalar('last_even')
-prev_summation = theano.tensor.iscalar('prev_summation')
-new_summation = theano.tensor.iscalar('new_summation')
 
-# Construct Theano Expression graph
-new_summation = theano.tensor.floor((prev_summation + (last_even *  phi_cubed) + .5))
+def next_even_fib(previous_fib, max_value):
+    return np.floor(previous_fib * phi_cubed + 0.5), theano.scan_module.until(np.floor(previous_fib * phi_cubed + 0.5) > max_value)
 
-f = theano.function (
-            inputs = [last_even, prev_summation],
-            outputs = new_summation)
-print(f(2, 2))
+max_value = theano.tensor.scalar()
+
+values, _ = theano.scan(next_even_fib,
+                        outputs_info = theano.tensor.constant(2., dtype='float64'),
+                        non_sequences = max_value,
+                        n_steps = 1024)
+
+summation = 2 + np.sum(values[0:-1])
+
+f = theano.function([max_value], values)
+print(f(4000000))
+
